@@ -1,0 +1,900 @@
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代購運費分攤計算機</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #F2F0EA;
+  --surface: #FFFFFF;
+  --surface-2: #F8F7F3;
+  --border: #DDD9CF;
+  --border-lt: #EAE8E1;
+  --accent: #4A67B5;
+  --accent-hover: #3655A0;
+  --accent-lt: #EDF1FA;
+  --text: #191C2A;
+  --text-2: #5A6080;
+  --text-3: #9BA3BE;
+  --red: #B84040;
+  --red-lt: #FDF0F0;
+  --mono: 'Menlo', 'Consolas', 'Courier New', monospace;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2.5rem 1rem 6rem;
+  line-height: 1.5;
+}
+
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Header ── */
+.hdr {
+  display: flex;
+  align-items: baseline;
+  gap: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--text);
+}
+.hdr h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.625rem;
+  font-weight: normal;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-wrap: balance;
+}
+.hdr .sub {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.card-body {
+  padding: 1.375rem 1.5rem;
+}
+.card-body + .card-body {
+  border-top: 1px solid var(--border-lt);
+}
+
+/* ── Section label ── */
+.sec-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-2);
+  margin-bottom: 0.875rem;
+}
+
+/* ── Fields ── */
+.field-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 150px;
+}
+.field label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.field .hint {
+  font-size: 0.73rem;
+  color: var(--text-3);
+}
+.field input[type="number"] {
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  width: 100%;
+  transition: border-color 0.14s;
+  -moz-appearance: textfield;
+}
+.field input[type="number"]::-webkit-inner-spin-button,
+.field input[type="number"]::-webkit-outer-spin-button { opacity: 0.4; }
+.field input[type="number"]:focus { border-color: var(--accent); }
+
+/* ── Packaging info ── */
+.pkg-strip {
+  margin-top: 0.875rem;
+  padding: 0.5rem 0.875rem;
+  background: var(--accent-lt);
+  border-radius: 5px;
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  display: none;
+}
+.pkg-strip strong { color: var(--accent); font-variant-numeric: tabular-nums; }
+
+/* ── Paste area ── */
+.paste-hint {
+  padding: 0.5rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-lt);
+  border-radius: 5px;
+  font-size: 0.8125rem;
+  color: var(--text-2);
+  line-height: 1.65;
+  margin-bottom: 0.875rem;
+  font-family: var(--mono);
+}
+.paste-hint strong { font-family: system-ui, sans-serif; color: var(--text); font-style: normal; }
+textarea.paste {
+  width: 100%;
+  min-height: 72px;
+  border: 1.5px solid var(--border);
+  border-radius: 5px;
+  padding: 0.5625rem 0.75rem;
+  font-size: 0.8125rem;
+  font-family: var(--mono);
+  color: var(--text);
+  background: var(--surface);
+  resize: vertical;
+  outline: none;
+  line-height: 1.6;
+  transition: border-color 0.14s;
+}
+textarea.paste:focus { border-color: var(--accent); }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+  white-space: nowrap;
+  line-height: 1;
+}
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn:active { transform: scale(0.985); }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-outline { background: transparent; color: var(--text-2); border-color: var(--border); }
+.btn-outline:hover { background: var(--surface-2); }
+.btn-sm { padding: 0.3rem 0.65rem; font-size: 0.8125rem; }
+.btn-calc { font-size: 1rem; padding: 0.625rem 1.75rem; }
+.action-row {
+  display: flex;
+  gap: 0.625rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Error / warn ── */
+.err-msg {
+  font-size: 0.8125rem;
+  color: var(--red);
+  margin-top: 0.5rem;
+  display: none;
+}
+.warn-strip {
+  margin-top: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  background: #FDF8E6;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  color: #7A6020;
+  display: none;
+}
+
+/* ── Table ── */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--border-lt); border-radius: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+th {
+  background: var(--surface-2);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-2);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-lt);
+  white-space: nowrap;
+}
+th.r { text-align: right; }
+td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border-lt); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+td.r { text-align: right; font-variant-numeric: tabular-nums; }
+tr.foot-row td {
+  background: var(--surface-2);
+  font-weight: 600;
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+}
+
+/* ── Inline editable ── */
+.iname {
+  border: none;
+  background: transparent;
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: var(--text);
+  width: 100%;
+  min-width: 60px;
+  outline: none;
+  padding: 0;
+}
+.iname:focus { border-bottom: 1.5px solid var(--accent); }
+.inum {
+  border: 1px solid var(--border-lt);
+  background: var(--surface-2);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.8125rem;
+  font-family: var(--mono);
+  text-align: right;
+  width: 72px;
+  outline: none;
+  color: var(--text);
+  -moz-appearance: textfield;
+}
+.inum::-webkit-inner-spin-button, .inum::-webkit-outer-spin-button { opacity: 0.4; }
+.inum:focus { border-color: var(--accent); background: var(--surface); }
+
+/* ── Delete btn ── */
+.del-btn {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: block;
+  margin: 0 auto;
+  transition: color 0.12s, background 0.12s;
+}
+.del-btn:hover { color: var(--red); background: var(--red-lt); }
+
+/* ── Results ── */
+.res-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.125rem;
+}
+.res-total {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.res-meta { font-size: 0.8125rem; color: var(--text-2); }
+.pct-pill {
+  display: inline-block;
+  padding: 0.1em 0.45em;
+  border-radius: 3px;
+  background: var(--accent-lt);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.cost-num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.cost-unit { font-size: 0.75rem; color: var(--text-2); }
+
+/* ── Toast ── */
+.toast {
+  font-size: 0.8125rem;
+  color: #2E7A52;
+  display: none;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* ── Hidden ── */
+.hidden { display: none !important; }
+
+/* ── History ── */
+.hist-list { display:flex; flex-direction:column; gap:0.5rem; }
+.hist-item {
+  display:flex; align-items:center; gap:0.75rem;
+  padding:0.625rem 0.75rem;
+  border:1px solid var(--border-lt); border-radius:6px;
+  font-size:0.875rem;
+}
+.hist-item:hover { background:var(--surface-2); }
+.hist-date { font-size:0.75rem; color:var(--text-3); min-width:4rem; }
+.hist-summary { flex:1; color:var(--text-2); }
+
+@media (max-width: 600px) {
+  body { padding: 1rem 0.625rem 4rem; }
+  .wrap { gap: 1rem; }
+  .hdr { flex-direction: column; gap: 0.2rem; }
+  .hdr h1 { font-size: 1.25rem; }
+  .field-row { flex-direction: column; }
+  .card-body { padding: 1rem; }
+  .res-total { font-size: 1.375rem; }
+
+  /* 表格欄位不換行，整體橫滑 */
+  table { font-size: 0.8rem; white-space: nowrap; }
+  th, td { padding: 0.4rem 0.5rem; }
+
+  /* 組合計算每列更緊湊 */
+  #comboItems label { padding: 0.5rem 0.625rem; gap: 0.5rem; }
+  #comboItems .inum { width: 52px; }
+
+  /* 按鈕稍大，好點按 */
+  .btn { padding: 0.5625rem 0.875rem; }
+  .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.8125rem; }
+}
+</style>
+
+<div class="wrap">
+
+  <!-- Header -->
+  <header class="hdr">
+    <h1>代購運費分攤</h1>
+    <span class="sub">按商品重量比例，計算每件應分攤的運費</span>
+  </header>
+
+  <!-- Step 1 -->
+  <div class="card">
+    <div class="card-body">
+      <div class="sec-label">運費資訊</div>
+      <div class="field-row">
+        <div class="field">
+          <label for="totalWeight">總重量（含包材）</label>
+          <input type="number" id="totalWeight" placeholder="3000" min="0" step="1">
+          <span class="hint">g（公克）</span>
+        </div>
+        <div class="field">
+          <label for="totalCost">總運費</label>
+          <input type="number" id="totalCost" placeholder="1062" min="0" step="1">
+          <span class="hint">元</span>
+        </div>
+        <div class="field">
+          <label for="productWeight">商品淨重（不含包材）</label>
+          <input type="number" id="productWeight" placeholder="2124" min="0" step="1">
+          <span class="hint">留空則以下方商品合計重量計算</span>
+        </div>
+      </div>
+      <div class="pkg-strip" id="pkgStrip"></div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="card">
+    <div class="card-body">
+      <div class="sec-label">商品重量</div>
+      <div class="paste-hint">
+        <strong>貼上格式：</strong>重量 × 數量，以 / 或換行分隔<br>
+        範例：46g*10 / 47g*2 / 20g<br>
+        可加名稱：立牌:46g*10 / 立牌 46g*10（冒號或空白皆可）
+      </div>
+      <textarea class="paste" id="pasteInput" placeholder="46g*10/47g*2/20g/13g*13/26g*7/26g/60g*2/56g*3/54g*4/55g*5/60g*6"></textarea>
+      <div class="err-msg" id="parseErr"></div>
+      <div class="action-row" style="margin-top: 0.875rem;">
+        <button class="btn btn-primary" onclick="parseInput()">解析並帶入</button>
+        <button class="btn btn-outline" onclick="addRow()">＋ 手動新增</button>
+      </div>
+    </div>
+
+    <!-- Items table -->
+    <div class="card-body hidden" id="itemsSection">
+      <div class="sec-label" style="margin-bottom:0.75rem;">商品列表　<span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:0.72rem;color:var(--text-3)">名稱欄可改成購買人名字</span></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>名稱</th>
+              <th class="r">單件重量 (g)</th>
+              <th class="r">數量</th>
+              <th class="r">小計 (g)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+          <tfoot id="itemsFoot"></tfoot>
+        </table>
+      </div>
+      <div class="action-row" style="margin-top: 1.25rem;">
+        <button class="btn btn-primary btn-calc" onclick="calculate()">計算分攤 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="card hidden" id="resultsCard">
+    <div class="card-body">
+      <div class="sec-label">分攤結果</div>
+      <div class="res-summary">
+        <span class="res-total" id="resTotalCost">—</span>
+        <span class="res-meta" id="resMeta"></span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:2rem">#</th>
+              <th>名稱</th>
+              <th class="r">數量</th>
+              <th class="r">單件重量</th>
+              <th class="r">分攤後單件重</th>
+              <th class="r">單件運費</th>
+              <th class="r">小計運費</th>
+            </tr>
+          </thead>
+          <tbody id="resBody"></tbody>
+          <tfoot id="resFoot"></tfoot>
+        </table>
+      </div>
+      <div class="warn-strip" id="warnStrip"></div>
+      <div class="action-row" style="margin-top: 1rem;">
+        <button class="btn btn-outline btn-sm" onclick="copyResults()">複製結果（文字）</button>
+        <span class="toast" id="copyToast">✓ 已複製</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Combo -->
+  <div class="card hidden" id="comboCard">
+    <div class="card-body">
+      <div class="sec-label">組合計算</div>
+      <p style="font-size:0.8125rem;color:var(--text-2);margin-bottom:1rem;">勾選商品並輸入數量，產生給客人的運費明細</p>
+      <div id="comboItems"></div>
+      <div id="comboOutput" class="hidden" style="margin-top:1.25rem;">
+        <pre id="comboText" style="background:var(--surface-2);border:1px solid var(--border-lt);border-radius:6px;padding:0.875rem 1rem;font-size:0.8125rem;font-family:var(--mono);line-height:1.8;white-space:pre-wrap;word-break:break-all;color:var(--text);"></pre>
+        <div class="action-row" style="margin-top:0.75rem;">
+          <button class="btn btn-outline btn-sm" onclick="copyCombo()">複製結果(文字)</button>
+          <span class="toast" id="comboToast">✓ 已複製</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="card" id="historyCard" style="display:none;">
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.875rem;">
+        <div class="sec-label" style="margin-bottom:0;">歷史紀錄</div>
+        <button class="btn btn-outline btn-sm" onclick="clearHistory()">清除全部</button>
+      </div>
+      <div class="hist-list" id="historyList"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var items = [];
+var counter = 0;
+var lastResults = null;
+var lastCost = 0;
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmt(n, d) {
+  return n.toFixed(d !== undefined ? d : 1);
+}
+function wFmt(n) { return String(Math.ceil(n)); }   // 重量：無條件進位
+function cFmt(n) { return String(Math.round(n)); }  // 金額：四捨五入
+
+/* ── Parse ── */
+function parseInput() {
+  var raw = document.getElementById('pasteInput').value.trim();
+  var errEl = document.getElementById('parseErr');
+  if (!raw) { showErr(errEl,'請輸入重量字串'); return; }
+  counter = 0;
+
+  var parts = raw.split(/[\/\n\r]+/).map(function(s){ return s.trim(); }).filter(Boolean);
+  var parsed = [], errs = [];
+
+  parts.forEach(function(p) {
+    var name = '', rest = p;
+    var nm = rest.match(/^([^\d：:\*＊×]+?)[\s：:]+(\d.+)$/);
+    if (nm) { name = nm[1].trim(); rest = nm[2]; }
+
+    var m = rest.match(/^(\d+(?:\.\d+)?)\s*g?\s*(?:[*＊×xX]\s*(\d+))?$/i);
+    if (!m) { errs.push('無法解析「'+p+'」'); return; }
+
+    var w = parseFloat(m[1]);
+    var q = m[2] ? parseInt(m[2]) : 1;
+    if (!w || w <= 0) { errs.push('重量無效：「'+p+'」'); return; }
+    parsed.push({ name: name || String(++counter), weight: w, qty: q });
+  });
+
+  if (errs.length) {
+    showErr(errEl, errs.join('；'));
+    if (!parsed.length) return;
+  } else {
+    hideEl(errEl);
+  }
+
+  items = parsed;
+  renderItems();
+  show('itemsSection');
+  hide('resultsCard');
+  updatePkgStrip();
+}
+
+/* ── Add row ── */
+function addRow() {
+  items.push({ name: String(++counter), weight: 0, qty: 1 });
+  renderItems();
+  show('itemsSection');
+}
+
+/* ── Delete row ── */
+function deleteRow(i) {
+  items.splice(i, 1);
+  renderItems();
+  if (!items.length) hide('itemsSection');
+  updatePkgStrip();
+}
+
+/* ── Render items table ── */
+function renderItems() {
+  var body = document.getElementById('itemsBody');
+  var foot = document.getElementById('itemsFoot');
+  body.innerHTML = '';
+
+  var total = 0;
+  items.forEach(function(it, i) {
+    var sub = it.weight * it.qty;
+    total += sub;
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td><input class="iname" value="'+esc(it.name)+'"'+
+        ' oninput="items['+i+'].name=this.value"'+
+        ' placeholder="名稱"></td>'+
+      '<td class="r"><input class="inum" type="number" value="'+it.weight+'" min="0" step="0.1"'+
+        ' oninput="items['+i+'].weight=parseFloat(this.value)||0;renderItems();updatePkgStrip();"></td>'+
+      '<td class="r"><input class="inum" type="number" value="'+it.qty+'" min="1" step="1"'+
+        ' oninput="items['+i+'].qty=parseInt(this.value)||1;renderItems();updatePkgStrip();"></td>'+
+      '<td class="r" style="font-family:var(--mono)">'+fmt(sub)+'</td>'+
+      '<td><button class="del-btn" onclick="deleteRow('+i+')" title="刪除">×</button></td>';
+    body.appendChild(tr);
+  });
+
+  foot.innerHTML =
+    '<tr class="foot-row">'+
+    '<td colspan="3">合計</td>'+
+    '<td class="r" style="font-family:var(--mono)">'+fmt(total)+' g</td>'+
+    '<td></td></tr>';
+}
+
+/* ── Get effective product weight ── */
+function getProductW() {
+  var inp = parseFloat(document.getElementById('productWeight').value);
+  if (!isNaN(inp) && inp > 0) return inp;
+  return items.reduce(function(s,it){ return s + it.weight*it.qty; }, 0);
+}
+
+/* ── Packaging strip ── */
+function updatePkgStrip() {
+  var tw = parseFloat(document.getElementById('totalWeight').value);
+  var pw = getProductW();
+  var el = document.getElementById('pkgStrip');
+  if (!isNaN(tw) && tw > 0 && pw > 0) {
+    var pk = tw - pw;
+    el.innerHTML = '包材重量 <strong>'+fmt(pk,0)+' g</strong>（佔總重 '+fmt(pk/tw*100,1)+'%），已按比例分攤至各商品';
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+/* ── Calculate ── */
+function calculate() {
+  var cost = parseFloat(document.getElementById('totalCost').value);
+  if (isNaN(cost) || cost <= 0) { alert('請輸入總運費'); return; }
+  if (!items.length) { alert('請先新增商品'); return; }
+
+  var prodW = getProductW();
+  if (!prodW) { alert('商品重量為零，無法計算'); return; }
+
+  var totalW = parseFloat(document.getElementById('totalWeight').value);
+  var hasTotalW = !isNaN(totalW) && totalW > 0;
+
+  var results = items.map(function(it) {
+    var sub = it.weight * it.qty;
+    var share = sub / prodW;
+    var subCost = cost * share;
+    var perPiece = subCost / it.qty;
+    var allocW = hasTotalW ? totalW * share : null;
+    return { name:it.name, weight:it.weight, qty:it.qty, sub:sub, share:share, subCost:subCost, perPiece:perPiece, allocW:allocW };
+  });
+
+  var body = document.getElementById('resBody');
+  var foot = document.getElementById('resFoot');
+  body.innerHTML = '';
+
+  var sumCost = 0, sumW = 0, sumAllocW = 0;
+  results.forEach(function(r) {
+    sumCost += Math.round(r.perPiece) * r.qty;
+    sumW += r.sub;
+    if (r.allocW !== null) sumAllocW += r.allocW;
+    var perPieceAllocW = r.allocW !== null ? r.allocW / r.qty : null;
+    var allocCell = perPieceAllocW !== null
+      ? '<span class="cost-num" style="font-size:0.875rem">'+wFmt(perPieceAllocW)+'</span> <span class="cost-unit">g</span>'
+      : '<span style="color:var(--text-3)">—</span>';
+    var roundedPer = Math.round(r.perPiece);
+    var displaySub = roundedPer * r.qty;
+    var rowIdx = results.indexOf(r) + 1;
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td style="color:var(--text-3);font-size:0.75rem;font-variant-numeric:tabular-nums;">'+rowIdx+'</td>'+
+      '<td>'+esc(r.name)+'</td>'+
+      '<td class="r">'+r.qty+'</td>'+
+      '<td class="r" style="font-family:var(--mono)">'+wFmt(r.weight)+' g</td>'+
+      '<td class="r">'+allocCell+'</td>'+
+      '<td class="r"><span class="cost-num">'+roundedPer+'</span> <span class="cost-unit">元</span></td>'+
+      '<td class="r"><span class="cost-num">'+displaySub+'</span> <span class="cost-unit">元</span></td>';
+    body.appendChild(tr);
+  });
+
+  var allocFootCell = hasTotalW
+    ? '<span class="cost-num" style="font-size:0.875rem">'+wFmt(sumAllocW)+'</span> <span class="cost-unit">g</span>'
+    : '<span style="color:var(--text-3)">—</span>';
+
+  foot.innerHTML =
+    '<tr class="foot-row">'+
+    '<td></td>'+
+    '<td>合計</td>'+
+    '<td class="r"></td>'+
+    '<td class="r" style="font-family:var(--mono)">'+wFmt(sumW)+' g</td>'+
+    '<td class="r">'+allocFootCell+'</td>'+
+    '<td class="r"></td>'+
+    '<td class="r"><span class="cost-num">'+Math.round(sumCost)+'</span> <span class="cost-unit">元</span></td>'+
+    '</tr>';
+
+  document.getElementById('resTotalCost').textContent = fmt(cost,0)+' 元';
+  document.getElementById('resMeta').textContent = '總運費　÷　商品重量 '+fmt(prodW,0)+' g';
+
+  var entered = parseFloat(document.getElementById('productWeight').value);
+  var itemsSum = items.reduce(function(s,it){ return s+it.weight*it.qty; },0);
+  var warnEl = document.getElementById('warnStrip');
+  if (!isNaN(entered) && entered > 0 && Math.abs(entered-itemsSum) > 1) {
+    warnEl.textContent = '⚠ 商品合計重量 '+fmt(itemsSum,0)+' g，與輸入淨重 '+fmt(entered,0)+' g 相差 '+fmt(Math.abs(entered-itemsSum),0)+' g，結果以輸入值計算。';
+    warnEl.style.display = 'block';
+  } else {
+    warnEl.style.display = 'none';
+  }
+
+  lastResults = results;
+  lastCost = cost;
+  show('resultsCard');
+  show('comboCard');
+  renderComboItems();
+  saveHistory();
+  document.getElementById('resultsCard').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+/* ── Copy ── */
+function copyResults() {
+  if (!lastResults) return;
+  var lines = lastResults.map(function(r) {
+    var rp = Math.round(r.perPiece);
+    var allocPart = r.allocW !== null ? '、分攤後單件重量('+wFmt(r.allocW/r.qty)+'g)' : '';
+    return r.name+': 單件重量('+wFmt(r.weight)+'g)'+allocPart+'、運費('+rp+'元)';
+  });
+  lines.push('─────────');
+  lines.push('合計：'+fmt(lastCost,0)+' 元');
+  doCopy(lines.join('\n'), 'copyToast');
+}
+
+function doCopy(text, toastId) {
+  function showToast() {
+    var t = document.getElementById(toastId);
+    t.style.display = 'flex';
+    setTimeout(function(){ t.style.display = 'none'; }, 2000);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(showToast).catch(function() { fallbackCopy(text, showToast); });
+  } else {
+    fallbackCopy(text, showToast);
+  }
+}
+
+function fallbackCopy(text, cb) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); if (cb) cb(); } catch(e) {}
+  document.body.removeChild(ta);
+}
+
+/* ── Combo ── */
+function renderComboItems() {
+  var container = document.getElementById('comboItems');
+  container.innerHTML = '';
+  if (!lastResults || !lastResults.length) return;
+
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;flex-direction:column;gap:0.5rem;';
+
+  lastResults.forEach(function(r, i) {
+    var row = document.createElement('label');
+    row.style.cssText = 'display:grid;grid-template-columns:1.25rem 1.5rem 1fr auto;align-items:center;gap:0.625rem;padding:0.5rem 0.75rem;border:1px solid var(--border-lt);border-radius:6px;cursor:pointer;transition:background 0.1s;';
+    row.innerHTML =
+      '<input type="checkbox" data-idx="'+i+'" style="width:1rem;height:1rem;accent-color:var(--accent);cursor:pointer;margin:0;">'+
+      '<span style="font-size:0.75rem;color:var(--text-3);text-align:right;">'+(i+1)+'</span>'+
+      '<span style="font-size:0.875rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(r.name)+'</span>'+
+      '<span style="display:flex;align-items:center;gap:0.375rem;white-space:nowrap;">'+
+        '<span style="font-size:0.8125rem;color:var(--text-2);">數量</span>'+
+        '<input type="number" data-idx="'+i+'" class="inum combo-qty" value="0" min="0" max="'+r.qty+'" step="1" style="width:56px;" disabled>'+
+        '<span style="font-size:0.8125rem;color:var(--text-3);min-width:3rem;">/ '+r.qty+' 件</span>'+
+      '</span>';
+    var cb = row.querySelector('input[type=checkbox]');
+    var numInput = row.querySelector('.combo-qty');
+    cb.addEventListener('change', function() {
+      numInput.disabled = !cb.checked;
+      if (cb.checked && parseInt(numInput.value) === 0) numInput.value = 1;
+      onComboChange();
+    });
+    numInput.addEventListener('input', onComboChange);
+    wrap.appendChild(row);
+  });
+
+  container.appendChild(wrap);
+  hide('comboOutput');
+}
+
+function onComboChange() {
+  var lines = [], formulaParts = [], total = 0;
+  var checkboxes = document.querySelectorAll('#comboItems input[type=checkbox]');
+  checkboxes.forEach(function(cb) {
+    if (!cb.checked) return;
+    var idx = parseInt(cb.getAttribute('data-idx'));
+    var qtyEl = document.querySelector('#comboItems input.combo-qty[data-idx="'+idx+'"]');
+    var max = parseInt(qtyEl.max) || Infinity;
+    var qty = Math.min(parseInt(qtyEl.value) || 0, max);
+    if (qty <= 0) return;
+    qtyEl.value = qty;
+    var r = lastResults[idx];
+    var rp = Math.round(r.perPiece);
+    var allocPart = r.allocW !== null ? '、分攤後單件重量('+wFmt(r.allocW/r.qty)+'g)' : '';
+    lines.push(r.name+': 單件重量('+wFmt(r.weight)+'g)'+allocPart+'、運費('+rp+'元)');
+    formulaParts.push(rp+'*'+qty);
+    total += rp * qty;
+  });
+
+  if (!lines.length) { hide('comboOutput'); return; }
+  var text = lines.join('\n')+'\n一共: '+formulaParts.join('+')+'= '+total+'元(國際運費)';
+  document.getElementById('comboText').textContent = text;
+  show('comboOutput');
+}
+
+function copyCombo() {
+  var text = document.getElementById('comboText').textContent;
+  if (!text) return;
+  doCopy(text, 'comboToast');
+}
+
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+function hideEl(el) { el.style.display = 'none'; }
+
+/* ── History ── */
+var HIST_KEY = 'frt_hist_v1';
+
+function saveHistory() {
+  var hist = getHistory();
+  var record = {
+    ts: new Date().toISOString(),
+    totalCost: lastCost,
+    totalWeight: parseFloat(document.getElementById('totalWeight').value) || null,
+    productWeight: parseFloat(document.getElementById('productWeight').value) || null,
+    items: items.map(function(it){ return {name:it.name, weight:it.weight, qty:it.qty}; })
+  };
+  hist.unshift(record);
+  if (hist.length > 20) hist.length = 20;
+  try { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); } catch(e) {}
+  renderHistoryCard();
+}
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch(e) { return []; }
+}
+
+function renderHistoryCard() {
+  var hist = getHistory();
+  var card = document.getElementById('historyCard');
+  var list = document.getElementById('historyList');
+  if (!hist.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = '';
+  hist.forEach(function(r, i) {
+    var d = new Date(r.ts);
+    var ds = (d.getMonth()+1)+'/'+(d.getDate())+' '+
+             String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    var div = document.createElement('div');
+    div.className = 'hist-item';
+    div.innerHTML =
+      '<span class="hist-date">'+ds+'</span>'+
+      '<span class="hist-summary">'+r.totalCost+' 元 · '+r.items.length+' 項</span>'+
+      '<button class="btn btn-outline btn-sm" onclick="restoreHistory('+i+')">載入</button>'+
+      '<button class="del-btn" onclick="deleteHistory('+i+')" title="刪除這筆">×</button>';
+    list.appendChild(div);
+  });
+}
+
+function restoreHistory(idx) {
+  var r = getHistory()[idx];
+  if (!r) return;
+  if (r.totalCost) document.getElementById('totalCost').value = r.totalCost;
+  if (r.totalWeight) document.getElementById('totalWeight').value = r.totalWeight;
+  if (r.productWeight) document.getElementById('productWeight').value = r.productWeight;
+  items = r.items.map(function(it){ return {name:it.name, weight:it.weight, qty:it.qty}; });
+  counter = items.length;
+  renderItems();
+  show('itemsSection');
+  updatePkgStrip();
+  calculate();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function deleteHistory(idx) {
+  var hist = getHistory();
+  hist.splice(idx, 1);
+  try { localStorage.setItem(HIST_KEY, JSON.stringify(hist)); } catch(e) {}
+  renderHistoryCard();
+}
+
+function clearHistory() {
+  try { localStorage.removeItem(HIST_KEY); } catch(e) {}
+  renderHistoryCard();
+}
+
+['totalWeight','totalCost','productWeight'].forEach(function(id) {
+  document.getElementById(id).addEventListener('input', function() {
+    updatePkgStrip();
+    hide('resultsCard');
+  });
+});
+
+renderHistoryCard();
+</script>
